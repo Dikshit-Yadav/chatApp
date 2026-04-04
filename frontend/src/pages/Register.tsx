@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { registerUser } from "../services/api";
+import { registerUser, sendOtp } from "../services/authAPI";
 import { useNavigate } from "react-router-dom";
 import Otp from "../components/Otp";
 
@@ -28,11 +28,12 @@ export default function Register() {
         isEmailVerified,
       });
 
-      localStorage.setItem("user", JSON.stringify(res.user._id));
+      localStorage.setItem("user", JSON.stringify(res.data.user._id));
+
       navigate("/chat");
 
-    } catch (err) {
-      alert("Registration failed");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -75,24 +76,22 @@ export default function Register() {
                   try {
                     setIsVerifying(true);
 
-                    await fetch("http://localhost:4500/auth/send-otp", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({ email: form.email }),
-                    });
+                    const res = await sendOtp(form.email);
+
+                    console.log(res.data.message);
 
                     setShowOtpModal(true);
-                  } catch (err) {
-                    alert("Failed to send OTP");
+
+                  } catch (error: any) {
+                    console.error(error.response?.data?.message || error.message);
+                    setShowOtpModal(false);
                   } finally {
                     setIsVerifying(false);
                   }
                 }}
                 className={`px-3 py-2 text-xs rounded-lg whitespace-nowrap ${isEmailVerified
-                    ? "bg-green-100 text-green-700"
-                    : "bg-teal-100 text-teal-700 hover:bg-teal-200"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-teal-100 text-teal-700 hover:bg-teal-200"
                   }`}
               >
                 {isEmailVerified ? "Verified" : isVerifying ? "..." : "Verify"}
@@ -134,8 +133,8 @@ export default function Register() {
             type="submit"
             disabled={!isEmailVerified || loading}
             className={`w-full py-2 rounded-lg text-white font-medium ${!isEmailVerified
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-teal-600 hover:bg-teal-700 shadow-md"
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-teal-600 hover:bg-teal-700 shadow-md"
               }`}
           >
             {loading ? "Registering..." : "Sign Up"}
@@ -168,6 +167,16 @@ export default function Register() {
 
         </form>
       </div>
+      {showOtpModal && (
+        <Otp
+          email={form.email}
+          onClose={() => setShowOtpModal(false)}
+          onVerified={() => {
+            setIsEmailVerified(true);
+            setShowOtpModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

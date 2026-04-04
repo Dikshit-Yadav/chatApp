@@ -4,6 +4,8 @@ import cors from "cors";
 import "./config/password.js";
 import sessionMiddleware from "./middleware/session.js";
 import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import invitationRoutes from "./routes/invitationRoutes.js";
 
 
 const app = express();
@@ -19,7 +21,8 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use("/auth", authRoutes);
-
+app.use("/user", userRoutes);
+app.use("/invite", invitationRoutes)
 
 app.get("/", (req, res) => {
     res.send("Hello server");

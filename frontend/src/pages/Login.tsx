@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { loginUser } from "../services/api";
+import { loginUser } from "../services/authAPI";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
@@ -13,18 +13,23 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      const res = await loginUser(form);
-      localStorage.setItem("user", JSON.stringify(res.user._id));
-      navigate("/chat");
-    } catch (err) {
-      alert("Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+
+  try {
+    setLoading(true);
+
+    const res = await loginUser(form);
+
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+
+    navigate("/chat");
+
+  } catch (err: any) {
+    alert(err.response?.data?.message || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="h-screen flex items-center justify-center bg-slate-200">
@@ -63,7 +68,10 @@ export default function Login() {
           <div>
             <div className="flex justify-between text-sm text-gray-600">
               <label>Password</label>
-              <span className="text-teal-600 cursor-pointer">
+              <span
+                className="text-teal-600 cursor-pointer"
+                onClick={() => navigate("/forgetpassword")}
+              >
                 Forgot Password?
               </span>
             </div>

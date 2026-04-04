@@ -2,7 +2,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectRoute";
-
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import ChatPage from "./pages/ChatPage";
+import AddFriend from "./pages/AddFriend";
 
 function App() {
   return (
@@ -10,10 +13,14 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgetpassword" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/add-friend" element={<AddFriend />} />
         <Route
           path="/chat"
           element={
             <ProtectedRoute>
+              <ChatPage />
             </ProtectedRoute>
           }
         />

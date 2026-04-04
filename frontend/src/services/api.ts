@@ -1,40 +1,32 @@
-const BASE_URL = "http://localhost:4500";
+import axios from "axios";
 
-export const loginUser = async (data: any) => {
-  const res = await fetch(`${BASE_URL}/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true,
+});
 
-  return res.json();
+export const API_ENDPOINTS = {
+  AUTH: {
+    LOGIN: "/auth/login",
+    REGISTER: "/auth/register",
+    SEND_OTP: "/auth/send-otp",
+    SEND_OTP_FORGOT: "/auth/send-otp/forgot",
+    VERIFY_OTP: "/auth/verify",
+    RESET_PASSWORD: "/auth/reset-password",
+  },
+  USER: {
+    SEARCH_FRIENDS: "/user/search",
+    GET_REQUESTS: "/user/requests",
+    RESPOND_INVITE: "/invite/respond",
+  },
+  INVITE: {
+    RESPOND: "/invite/respond",
+    SEND: "/invite/send",
+    GET: "/invite",
+  }
 };
 
-export const registerUser = async (data: any) => {
-  const res = await fetch(`${BASE_URL}/auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-
-  return res.json();
-};
-
-export const verifyOtp = async (data: any) => {
-  const res = await fetch(`${BASE_URL}/auth/verify`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-
-  return res.json();
-};
+export default api;
