@@ -1,7 +1,7 @@
 import Sidebar from "../components/Sidebar";
 import AddFriend from "./AddFriend";
 import { Routes, Route } from "react-router-dom";
-import RightPanel from "../components/RightPanel";
+// import RightPanel from "../components/RightPanel";
 
 
 export default function ChatPage() {
@@ -12,7 +12,7 @@ export default function ChatPage() {
       <Routes>
         <Route path="/add-friend" element={<AddFriend />} />
       </Routes>
-      <RightPanel />
+      {/* <RightPanel /> */}
 
     </div>
   );

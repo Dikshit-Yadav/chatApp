@@ -1,4 +1,5 @@
 import Invitation from "../models/Invitation.js";
+import User from "../models/User.js";
 
 // send invite
 export const sendInviteService = async (senderId, receiverId) => {
@@ -44,6 +45,15 @@ export const sendInviteService = async (senderId, receiverId) => {
 // respond invite
 export const respondInviteService = async (invitationId, status) => {
     const invite = await Invitation.findById(invitationId);
+    const user = await User.findById(invite.senderId);
+    const receiver = await User.findById(invite.receiverId);
+
+    user.friends.push(receiver._id);
+    receiver.friends.push(user._id);
+
+    await user.save();
+    await receiver.save();
+
 
     if (!invite) {
         throw new Error("Invite not found");
