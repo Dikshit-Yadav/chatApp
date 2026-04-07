@@ -44,26 +44,27 @@ export const getFriendsService = async (userId) => {
         "friends",
         "username email profilePic"
     );
-    // const objectId =new mongoose.Types.ObjectId(userId);
-    // const conversations = await Conversation.find({ members: objectId })
-    //     .populate({
-    //         path: "lastMessage",
-    //         select: "message",
-    //     })
-    //     .select("_id lastMessage");
+    const objectId =new mongoose.Types.ObjectId(userId);
+    const conversations = await Conversation.find({ members: objectId })
+        .populate({
+            path: "lastMessage",
+            select: "message",
+        })
+        .select("_id members lastMessage");
 
-    // const formattedConversations = conversations.map(conv => ({
-    //     conversationId: conv._id,
-    //     lastMessage: conv.lastMessage ? conv.lastMessage.message : null
-    // }));
+   const formattedConversations = conversations.map(conv => ({
+        conversationId: conv._id,
+        members: conv.members.map(m => m.toString()),
+        lastMessage: conv.lastMessage ? conv.lastMessage.message : null
+    }));
 
     if (!user) throw new Error("User not found");
 
-    //  return {
-    //     friends: user.friends,
-    //     conversations: formattedConversations
-    // };
-    return user.friends;
+     return {
+        friends: user.friends,
+        conversations: formattedConversations
+    };
+    // return user.friends;
 };
 
 // get suggestions

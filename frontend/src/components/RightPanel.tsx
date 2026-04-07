@@ -7,6 +7,7 @@ interface Friend {
     _id: string;
     username: string;
     profilePic?: string;
+    lastMessage?: string;
     unread?: number;
 }
 
@@ -17,28 +18,38 @@ const RightPanel = () => {
     const [showUnreadOnly, setShowUnreadOnly] = useState(false);
     const [search, setSearch] = useState("");
 
-    const loggedInUserId = JSON.parse(localStorage.getItem("user") || "{}")._id;
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchFriends = async () => {
-            try {
-                const res = await getFriends();
-                setFriends(res.data);
-            } catch (err) {
-                console.error("Error fetching friends", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchFriends();
-    }, []);
+   useEffect(() => {
+    const fetchfriends = async () => {
+        try {
+            const res = await getFriends();
+            const { friends: friendsData, conversations } = res.data;
 
-    
+            const friendsWithLastMessage = friendsData.map((friend: Friend) => {
+                const conversation = conversations.find(conv =>
+                    conv.members?.includes(friend._id)
+                );
+
+                return {
+                    ...friend,
+                    lastMessage: conversation?.lastMessage || "Start conversation..."
+                };
+            });
+
+            setFriends(friendsWithLastMessage);
+        } catch (err) {
+            console.error("Error fetching friends and conversations", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchfriends();
+}, []);
 
     const handleFriendClick = async (friendId: string) => {
         try {
-            // Only pass the friend's ID
             const conversation = await conversationApi.createPrivateConversation(friendId);
             if (conversation.data._id) {
                 navigate(`/chat/messages/${conversation.data._id}`);
@@ -51,9 +62,7 @@ const RightPanel = () => {
     const displayedFriends = friends
         .filter((f) => (showUnreadOnly ? (f.unread || 0) > 0 : true))
         .filter((f) =>
-            search.trim()
-                ? f.username.toLowerCase().includes(search.toLowerCase())
-                : true
+            search.trim() ? f.username.toLowerCase().includes(search.toLowerCase()) : true
         );
 
     return (
@@ -74,19 +83,21 @@ const RightPanel = () => {
 
             <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200">
                 <button
-                    className={`flex-1 text-sm font-medium pb-1 text-center rounded-md ${activeTab === "direct"
+                    className={`flex-1 text-sm font-medium pb-1 text-center rounded-md ${
+                        activeTab === "direct"
                             ? "text-teal-600 border-b-2 border-teal-600"
                             : "text-gray-500 hover:text-teal-600 transition-colors"
-                        }`}
+                    }`}
                     onClick={() => setActiveTab("direct")}
                 >
                     Direct
                 </button>
                 <button
-                    className={`flex-1 text-sm font-medium pb-1 text-center rounded-md ${activeTab === "groups"
+                    className={`flex-1 text-sm font-medium pb-1 text-center rounded-md ${
+                        activeTab === "groups"
                             ? "text-teal-600 border-b-2 border-teal-600"
                             : "text-gray-500 hover:text-teal-600 transition-colors"
-                        }`}
+                    }`}
                     onClick={() => setActiveTab("groups")}
                 >
                     Groups
@@ -126,7 +137,7 @@ const RightPanel = () => {
                                         {friend.username}
                                     </p>
                                     <p className="text-xs text-gray-400 truncate">
-                                        Start conversation...
+                                        {friend.lastMessage}
                                     </p>
                                 </div>
                             </div>
