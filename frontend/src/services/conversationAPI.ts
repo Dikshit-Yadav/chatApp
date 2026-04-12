@@ -60,9 +60,11 @@ export const conversationApi = {
   getGroup: async (conversationId: string) => {
     return api.get(API_ENDPOINTS.CONVERSATION.GET_GROUP(conversationId));
   },
-
+    getGroups: async () => {
+    return api.get(API_ENDPOINTS.CONVERSATION.GET_GROUPS);
+  },
   // update groupname
- updateGroupName: async (conversationId: string, groupName: string) => {
+ renameGroup: async (conversationId: string, groupName: string) => {
     return api.put(
       API_ENDPOINTS.CONVERSATION.UPDATE_GROUP(conversationId),
       { groupName }

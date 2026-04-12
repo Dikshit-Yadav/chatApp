@@ -96,6 +96,28 @@ export const getGroup = async (req, res) => {
     }
 };
 
+export const getGroups = async (req, res) => {
+  try {
+    const groups = await Group.find({
+      members: req.user._id,
+      isGroup: true,
+    })
+      .populate("admin", "username profilePic")
+      .populate("members", "username profilePic")
+      .sort({ updatedAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      groups,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const updateGroupName = async (req, res) => {
     try {
         const { conversationId } = req.params;
@@ -182,8 +204,10 @@ export const removeMember = async (req, res) => {
     );
 
     await group.save();
+    const updatedGroup = await Conversation.findById(groupId)
+      .populate("members", "username profilePic");
 
-    res.json({ message: "Member removed", group });
+    res.json({ message: "Member removed", group: updatedGroup});
 
   } catch (err) {
     res.status(500).json({ message: err.message });

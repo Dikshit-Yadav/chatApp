@@ -1,36 +1,38 @@
 import { useEffect, useState } from "react";
 import { Users, Plus } from "lucide-react";
-import { conversationApi } from "../services/conversationAPI";
 import { useNavigate } from "react-router-dom";
+import type { Conversation } from "../types/type";
 
 
-export default function GroupSidebar({ onSelect, onCreate, inviteCount }: any) {
-  const [groups, setGroups] = useState([]);
-  const [search, setSearch] = useState("");
+type Props = {
+  groups: Conversation[];
+  onSelect: (group: Conversation) => void;
+  onCreate: () => void;
+  inviteCount: number;
+};
+
+export default function GroupSidebar({
+  groups,
+  onSelect,
+  onCreate,
+  inviteCount,
+}: Props) {
+  // const [groups, setGroups] = useState([]);
+  const [search, setSearch] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"direct" | "groups">("groups");
+  const [showUnreadOnly, setShowUnreadOnly] = useState<boolean>(false);
 
   const navigate = useNavigate();
-  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const filteredGroups = groups.filter((group) =>
+    (group.groupName ?? "")
+      .toLowerCase()
+      .trim()
+      .includes(search.toLowerCase().trim())
+  );
 
   useEffect(() => {
-    fetchGroups();
-  }, []);
-
-  const fetchGroups = async () => {
-    try {
-      const res = await conversationApi.getConversations();
-      const groupChats = res.data.conversations?.filter(
-        (c: any) => c.isGroup
-      ) || [];
-      setGroups(groupChats);
-    } catch (err) {
-      console.error("Failed to fetch groups", err);
-    }
-  };
-
-  const filteredGroups = groups.filter((group: any) =>
-  group.groupName?.toLowerCase().includes(search.toLowerCase())
-);
+    console.log("Groups updated:", groups);
+  }, [groups]);
 
   return (
     <div className="w-[350px] flex-shrink-0 h-screen bg-[#eaf3f5] flex flex-col border-l border-gray-200">
@@ -98,7 +100,7 @@ export default function GroupSidebar({ onSelect, onCreate, inviteCount }: any) {
       </div>
 
       <div className="flex flex-col gap-2 overflow-y-auto">
-        {groups.length === 0 ? (
+        {filteredGroups.length === 0 ? (
           <p className="text-gray-500 text-sm text-center mt-4">
             No groups yet
           </p>

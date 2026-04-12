@@ -1,254 +1,266 @@
 import { useEffect, useRef, useState } from "react";
 import { FaUsers } from "react-icons/fa";
-import { socket } from "../contex/socket";
-import { conversationApi } from "../services/conversationAPI";
+import { useGroupChatStore } from "../store/groupChatStore";
+import { useGroupChatSocket } from "../hooks/useGroupChatSocket";
+import type { Conversation, Message, User } from "../types/type";
 
-export default function GroupChat({ group, onInvite, onGroupUpdate }: any) {
-    const [messages, setMessages] = useState<any[]>([]);
-    const [text, setText] = useState("");
-    const [members, setMembers] = useState<any[]>([]);
-    const [showMembers, setShowMembers] = useState(false);
-    const [loadingId, setLoadingId] = useState<string | null>(null);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+interface Props {
+  group: Conversation | null;
+  onInvite: () => void;
+}
 
-    const loggedInUser = JSON.parse(
-        localStorage.getItem("user") || "{}"
-    );
-    //   console.log(loggedInUser.profilePic)
-    const isMe = (msg: any) => {
-        const senderId =
-            typeof msg.senderId === "object"
-                ? msg.senderId._id
-                : msg.senderId;
+export default function GroupChat({ group, onInvite }: Props) {
+  const {
+    messages,
+    members,
+    loadingId,
+    setGroup,
+    fetchMessages,
+    sendMessage,
+    removeMember,
+    deleteGroup,
+    renameGroup,
+  } = useGroupChatStore();
 
-        return senderId === loggedInUser._id;
-    };
+  useGroupChatSocket();
 
-    const removeMember = async (memberId: string) => {
-        try {
-            setLoadingId(memberId);
+  const [text, setText] = useState("");
+  const [showMembers, setShowMembers] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [newName, setNewName] = useState(group?.groupName || "");
 
-            const res = await conversationApi.removeMember(group._id, memberId);
-            const updatedGroup = res.data.group;
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-            setMembers((prev) => prev.filter((m) => m._id !== memberId));
-            onGroupUpdate(updatedGroup);
+  const loggedInUser: User = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
 
-        } catch (err) {
-            console.error("Failed to remove member", err);
-        } finally {
-            setLoadingId(null);
-        }
-    };
+  const adminId =
+    typeof group?.admin === "object"
+      ? group.admin._id
+      : group?.admin;
 
-    useEffect(() => {
-        if (group?.members) {
-            setMembers(group.members);
-        }
-    }, [group]);
-    useEffect(() => {
-        if (!group) return;
-        setMessages([]);
-        socket.emit("join-conversation", {
-            conversationId: group._id,
-        });
+  const isAdmin = adminId === loggedInUser._id;
 
-        const handleMessage = (msg: any) => {
-            if (msg.conversationId === group._id) {
-                setMessages((prev) => [...prev, msg]);
-            }
-        };
+  const isMe = (msg: Message): boolean => {
+    const senderId =
+      typeof msg.senderId === "object"
+        ? msg.senderId._id
+        : msg.senderId;
 
-        socket.on("receive-message", handleMessage);
+    return senderId === loggedInUser._id;
+  };
 
-        return () => {
-            socket.emit("leave-conversation", {
-                conversationId: group._id,
-            });
+  useEffect(() => {
+    setGroup(group);
+    if (group) {
+      fetchMessages(group._id);
+      setNewName(group.groupName || "");
+    }
+  }, [group]);
 
-            socket.off("receive-message", handleMessage);
-        };
-    }, [group]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-    useEffect(() => {
-        if (!group) return;
+  const handleSend = () => {
+    if (!text.trim()) return;
+    sendMessage(text);
+    setText("");
+  };
 
-        const fetchMessages = async () => {
-            try {
-                const res = await conversationApi.getMessages(group._id);
-                console.log("API MESSAGES:", res.data);
-                setMessages(res.data || []);
-            } catch (err) {
-                console.error("Error fetching messages", err);
-            }
-        };
-
-        fetchMessages();
-    }, [group]);
-
-    // auto scroll
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({
-            behavior: "smooth",
-        });
-    }, [messages]);
-
-    const sendMessage = () => {
-        if (!text.trim() || !group) return;
-
-        socket.emit("send-message", {
-            conversationId: group._id,
-            message: text,
-        });
-
-        setText("");
-    };
-
-    if (!group) {
-        return (
-            <div className="flex-1 flex items-center justify-center text-gray-500">
-                Select a group
-            </div>
-        );
+  const handleRename = async () => {
+    if (!group || !newName.trim() || newName === group.groupName) {
+      setEditingName(false);
+      return;
     }
 
-    return (
-        <div className="flex-1 flex flex-col h-screen bg-gray-100">
+    await renameGroup(group._id, newName);
+    setEditingName(false);
+  };
 
-            <div className="sticky top-0 z-10 bg-white p-4 flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold">
-                        {group.groupName?.[0]?.toUpperCase()}
-                    </div>
+  const handleDelete = async () => {
+    if (!group) return;
 
-                    <div>
-                        <h3 className="font-semibold text-gray-800">
-                            {group.groupName}
-                        </h3>
-                        <span className="text-xs text-gray-400">
-                            Group chat
-                        </span>
-                    </div>
-                </div>
-
-
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setShowMembers(true)}
-                        className="bg-gray-200 hover:bg-gray-300 p-2 rounded-full"
-                    >
-                        <FaUsers />
-                    </button>
-
-                    <button
-                        onClick={onInvite}
-                        className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-full text-sm"
-                    >
-                        + Add
-                    </button>
-                </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-                {messages.map((m, i) => {
-                    const me = isMe(m);
-                    const sender = m.senderId;
-
-                    if (!m.message) return null;
-
-                    return (
-                        <div key={i} className={`flex ${me ? "justify-end" : "justify-start"}`}>
-                            <div className="flex items-end gap-2 max-w-[70%]">
-
-                                {!me && (
-                                    <img
-                                        src={sender?.profilePic || "https://i.pravatar.cc/40"}
-                                        className="w-8 h-8 rounded-full"
-                                    />
-                                )}
-
-                                <div>
-                                    {!me && (
-                                        <div className="text-xs text-gray-500">
-                                            {sender?.username}
-                                        </div>
-                                    )}
-
-                                    <div className={`px-4 py-2 rounded-xl ${me ? "bg-teal-500 text-white" : "bg-white"
-                                        }`}>
-                                        {m.message}
-                                    </div>
-                                </div>
-
-                                {me && (
-                                    <img
-                                        src={loggedInUser.profilePic || "https://i.pravatar.cc/40"}
-                                        className="w-8 h-8 rounded-full"
-                                    />
-                                )}
-
-                            </div>
-                        </div>
-                    );
-                })}
-
-                <div ref={messagesEndRef} />
-            </div>
-
-            <div className="p-3 bg-white flex items-center gap-2 shadow-md">
-                <input
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                    className="flex-1 border border-gray-300 px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-400"
-                    placeholder="Type a message..."
-                />
-
-                <button
-                    onClick={sendMessage}
-                    className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-full shadow"
-                >
-                    Send
-                </button>
-            </div>
-            {showMembers && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-                    <div className="bg-white w-[350px] max-h-[80vh] rounded-lg p-4 overflow-y-auto">
-
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="font-semibold text-lg">Group Members</h2>
-                            <button onClick={() => setShowMembers(false)}>✖</button>
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                            {members.map((member: any) => (
-                                <div
-                                    key={member._id}
-                                    className="flex items-center justify-between"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <img
-                                            src={member.profilePic || "https://i.pravatar.cc/40"}
-                                            className="w-8 h-8 rounded-full"
-                                        />
-                                        <span>{member.username}</span>
-                                    </div>
-
-                                    {member._id !== loggedInUser._id && (
-                                        <button
-                                            disabled={loadingId === member._id}
-                                            onClick={() => removeMember(member._id)}
-                                            className="text-red-500 text-sm"
-                                        >
-                                            {loadingId === member._id ? "Removing..." : "Remove"}
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this group?"
     );
+
+    if (!confirmDelete) return;
+
+    await deleteGroup(group._id);
+  };
+
+  if (!group) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-gray-500">
+        Select a group
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col h-screen bg-gray-100">
+
+      <div className="sticky top-0 z-10 bg-white p-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold">
+            {group.groupName?.[0]?.toUpperCase()}
+          </div>
+
+          <div>
+            {editingName ? (
+              <input
+                autoFocus
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onBlur={handleRename}
+                onKeyDown={(e) => e.key === "Enter" && handleRename()}
+                className="font-semibold border-b border-teal-500 outline-none"
+              />
+            ) : (
+              <h3
+                onClick={() => setEditingName(true)}
+                className="font-semibold cursor-pointer hover:text-teal-600"
+              >
+                {group.groupName}
+              </h3>
+            )}
+            <span className="text-xs text-gray-400">Group chat</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMembers(true)}
+            className="bg-gray-200 p-2 rounded-full"
+          >
+            <FaUsers />
+          </button>
+
+          <button
+            onClick={onInvite}
+            className="bg-teal-600 text-white px-3 py-1 rounded-full text-sm"
+          >
+            + Add
+          </button>
+
+          {isAdmin && (
+            <button
+              onClick={handleDelete}
+              className="bg-red-500 text-white px-3 py-1 rounded-full text-sm"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+        {messages.map((m, i) => {
+          if (!m.message) return null;
+
+          const me = isMe(m);
+          const sender = m.senderId;
+
+          return (
+            <div key={m._id || i} className={`flex ${me ? "justify-end" : "justify-start"}`}>
+              <div className="flex items-end gap-2 max-w-[70%]">
+
+                {!me && (
+                  <img
+                    src={sender?.profilePic || "https://i.pravatar.cc/40"}
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+
+                <div>
+                  {!me && (
+                    <div className="text-xs text-gray-500">
+                      {sender?.username}
+                    </div>
+                  )}
+
+                  <div className={`px-4 py-2 rounded-xl ${me ? "bg-teal-500 text-white" : "bg-white"}`}>
+                    {m.message}
+                  </div>
+                </div>
+
+                {me && (
+                  <img
+                    src={loggedInUser.profilePic || "https://i.pravatar.cc/40"}
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="p-3 bg-white flex gap-2 shadow-md">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          className="flex-1 border px-4 py-2 rounded-full"
+          placeholder="Type a message..."
+        />
+
+        <button
+          onClick={handleSend}
+          className="bg-teal-600 text-white px-5 py-2 rounded-full"
+        >
+          Send
+        </button>
+      </div>
+
+      {showMembers && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-[360px] max-h-[80vh] rounded-2xl p-5 overflow-y-auto">
+
+            <h2 className="font-semibold text-lg mb-4">Group Members</h2>
+
+            <div className="flex flex-col gap-4">
+              {members.map((member, index) => {
+                if (typeof member === "string") return null;
+                const user = member as User;
+
+                return (
+                  <div key={user._id || index} className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={user.profilePic || "https://i.pravatar.cc/40"}
+                        className="w-9 h-9 rounded-full"
+                      />
+                      <span>{user.username}</span>
+                    </div>
+
+                    {user._id !== loggedInUser._id && (
+                      <button
+                        disabled={loadingId === user._id}
+                        onClick={() => removeMember(group._id, user._id)}
+                        className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded-full"
+                      >
+                        {loadingId === user._id ? "Removing..." : "Remove"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setShowMembers(false)}
+              className="mt-5 w-full bg-gray-200 py-2 rounded-lg"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

@@ -45,7 +45,8 @@ export const API_ENDPOINTS = {
     GET_GROUP: (id: string) => `/conversation/group/${id}`,
     UPDATE_GROUP: (id: string) => `/conversation/group/${id}`,
     DELETE_GROUP: (id: string) => `/conversation/group/${id}`,
-
+    GET_GROUPS: "/conversation/groups",
+    
     // 🔥 FIXED
     ADD_MEMBER: "/conversation/group/add-member",
     REMOVE_MEMBER: "/conversation/group/remove-member",

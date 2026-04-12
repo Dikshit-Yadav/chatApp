@@ -1,15 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {conversationApi} from "../services/conversationAPI";
 import GroupSidebar from "../components/GroupSidebar";
 import GroupChat from "../components/GroupChat";
 import CreateGroupModal from "../components/CreateGroupModel";
-import AddMemberModal from "../components/AddMemberModel";
+import AddMemberModel from "../components/AddMemberModel";
+import type{ Group } from "../types/group"
 
 export default function GroupPage() {
-  const [selectedGroup, setSelectedGroup] = useState<any>(null);
-  const [groups, setGroups] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
 
+ useEffect(() => {
+  const fetchGroups = async () => {
+    try {
+      const res = await conversationApi.getGroups();
+      console.log(res.data.groups)
+      setGroups(res.data.groups);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchGroups();
+}, []);
   return (
     <div className="flex h-screen">
       <GroupSidebar
@@ -17,15 +32,14 @@ export default function GroupPage() {
         onSelect={setSelectedGroup}
         onCreate={() => setShowCreate(true)}
       />
-
       <GroupChat
         group={selectedGroup}
         onInvite={() => setShowInvite(true)}
-        onGroupUpdate={(updatedGroup: any) => {
+        onGroupUpdate={(updatedGroup: Group) => {
           setSelectedGroup(updatedGroup);
 
-          setGroups((prev: any) =>
-            prev.map((g: any) =>
+          setGroups((prev) =>
+            prev.map((g) =>
               g._id === updatedGroup._id ? updatedGroup : g
             )
           );
@@ -35,15 +49,15 @@ export default function GroupPage() {
       {showCreate && (
         <CreateGroupModal
           onClose={() => setShowCreate(false)}
-          onGroupCreated={(newGroup: any) => {
-            setGroups((prev: any) => [newGroup, ...prev]);
+          onGroupCreated={(newGroup: Group) => {
+            setGroups((prev) => [newGroup, ...prev]);
             setSelectedGroup(newGroup);
           }}
         />
       )}
 
       {showInvite && selectedGroup && (
-        <AddMemberModal
+        <AddMemberModel
           group={selectedGroup}
           onClose={() => setShowInvite(false)}
           setGroups={setGroups}

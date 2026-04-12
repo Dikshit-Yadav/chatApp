@@ -4,18 +4,12 @@ import { conversationApi } from "../services/conversationAPI";
 export default function CreateGroupModal({ onClose, onGroupCreated }: any) {
   const [name, setName] = useState("");
 
-  // const createGroup = async () => {
-  //   await conversationApi.createGroup(name, []);
-  //   alert("Group Created");
-  //   onClose();
-  // };
-
-  
   const createGroup = async () => {
     try {
       const res = await conversationApi.createGroup(name, []);
 
       const newGroup = res.data.group;
+      console.log(newGroup)
 
       if (typeof onGroupCreated === "function") {
         onGroupCreated(newGroup);

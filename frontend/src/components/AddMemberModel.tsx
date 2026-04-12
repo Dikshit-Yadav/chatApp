@@ -1,10 +1,23 @@
 import { useEffect, useState } from "react";
 import { conversationApi } from "../services/conversationAPI";
 import { getFriends } from "../services/userAPI";
+import type { Conversation, User } from "../types/type";
 
-export default function AddMemberModal({ group, onClose, setGroups, setSelectedGroup }: any) {
-  const [friends, setFriends] = useState([]);
-  const [members, setMembers] = useState<any[]>([]);
+type Props = {
+  group: Conversation;
+  onClose: () => void;
+  setGroups: React.Dispatch<React.SetStateAction<Conversation[]>>;
+  setSelectedGroup: React.Dispatch<React.SetStateAction<Conversation | null>>;
+};
+
+export default function AddMemberModel({
+  group,
+  onClose,
+  setGroups,
+  setSelectedGroup,
+}: Props) {
+  const [friends, setFriends] = useState<User[]>([]);
+  const [members, setMembers] = useState<User[]>([]);
 
   useEffect(() => {
     fetchFriends();
@@ -20,35 +33,34 @@ export default function AddMemberModal({ group, onClose, setGroups, setSelectedG
   };
 
   // check user in group
- const isMember = (userId: string) => {
-  return members.some((m: any) => m._id === userId);
-};
+  const isMember = (userId: string): boolean => {
+    return members.some((m) => m._id === userId);
+  };
 
   // add member
- const addMember = async (userId: string) => {
-  try {
-    const res = await conversationApi.addMember(group._id, userId);
+  const addMember = async (userId: string) => {
+    try {
+      const res = await conversationApi.addMember(group._id, userId);
 
-    const updatedGroup = res.data.group;
+      const updatedGroup = res.data.group;
 
-    setMembers(updatedGroup.members);
+      setMembers(updatedGroup.members as User[]);
+      setSelectedGroup(updatedGroup);
 
-    setSelectedGroup(updatedGroup);
+      setGroups((prev) =>
+        prev.map((g) =>
+          g._id === updatedGroup._id ? updatedGroup : g
+        )
+      );
 
-    setGroups((prev: any) =>
-      prev.map((g: any) =>
-        g._id === updatedGroup._id ? updatedGroup : g
-      )
-    );
-
-  } catch (err) {
-    console.error("Failed to add member", err);
-  }
-};
+    } catch (err) {
+      console.error("Failed to add member", err);
+    }
+  };
 
   useEffect(() => {
-  setMembers(group?.members || []);
-}, [group]);
+    setMembers(group?.members || []);
+  }, [group]);
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center">
@@ -59,7 +71,7 @@ export default function AddMemberModal({ group, onClose, setGroups, setSelectedG
         </h2>
 
         <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
-          {friends.map((f: any) => (
+          {friends.map((f) => (
             <div
               key={f._id}
               className="flex justify-between items-center p-2 rounded hover:bg-gray-100"
@@ -69,11 +81,10 @@ export default function AddMemberModal({ group, onClose, setGroups, setSelectedG
               <button
                 disabled={isMember(f._id)}
                 onClick={() => addMember(f._id)}
-                className={`px-3 py-1 text-xs rounded transition ${
-                  isMember(f._id)
-                    ? "bg-gray-300 cursor-not-allowed"
-                    : "bg-teal-500 text-white hover:bg-teal-600"
-                }`}
+                className={`px-3 py-1 text-xs rounded transition ${isMember(f._id)
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-teal-500 text-white hover:bg-teal-600"
+                  }`}
               >
                 {isMember(f._id) ? "Added" : "Add"}
               </button>

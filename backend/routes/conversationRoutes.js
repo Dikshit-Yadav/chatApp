@@ -5,6 +5,7 @@ import { isAuthenticated } from "../middleware/authMiddleware.js";
 
 router.post("/group", isAuthenticated, conversationController.createGroup);
 router.get("/group/:conversationId", isAuthenticated, conversationController.getGroup);
+router.get("/groups", isAuthenticated, conversationController.getGroups);
 router.put("/group/:conversationId", isAuthenticated, conversationController.updateGroupName);
 router.delete("/group/:conversationId", isAuthenticated, conversationController.deleteGroup);
 
