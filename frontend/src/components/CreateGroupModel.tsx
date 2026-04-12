@@ -1,15 +1,32 @@
 import { useState } from "react";
 import { conversationApi } from "../services/conversationAPI";
 
-export default function CreateGroupModal({ onClose }: any) {
+export default function CreateGroupModal({ onClose, onGroupCreated }: any) {
   const [name, setName] = useState("");
 
-  const createGroup = async () => {
-    await conversationApi.createGroup(name, []);
-    alert("Group Created");
-    onClose();
-  };
+  // const createGroup = async () => {
+  //   await conversationApi.createGroup(name, []);
+  //   alert("Group Created");
+  //   onClose();
+  // };
 
+  
+  const createGroup = async () => {
+    try {
+      const res = await conversationApi.createGroup(name, []);
+
+      const newGroup = res.data.group;
+
+      if (typeof onGroupCreated === "function") {
+        onGroupCreated(newGroup);
+      }
+
+      onClose();
+
+    } catch (err) {
+      console.error("Failed to create group", err);
+    }
+  };
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="w-[420px] bg-white rounded-2xl shadow-xl p-6 relative">
@@ -38,7 +55,7 @@ export default function CreateGroupModal({ onClose }: any) {
         />
 
 
-          <div className="flex gap-3">
+        <div className="flex gap-3">
           <button
             onClick={onClose}
             className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100"

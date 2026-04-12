@@ -139,12 +139,12 @@ export const addMember = async (req, res) => {
       return res.status(404).json({ message: "Group not found" });
     }
 
-    // 🔒 only members can add
+    // only members can add
     if (!group.members.some(m => m._id.toString() === userId)) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // 🚫 prevent duplicate
+    // prevent duplicate
     if (group.members.some(m => m._id.toString() === newMemberId)) {
       return res.status(400).json({ message: "Already in group" });
     }
@@ -155,7 +155,6 @@ export const addMember = async (req, res) => {
     const updatedGroup = await Conversation.findById(groupId)
       .populate("members", "username profilePic");
 
-    // ⚡ SOCKET
     const io = getIO();
     const sockets = getReceiverSockets(newMemberId);
 

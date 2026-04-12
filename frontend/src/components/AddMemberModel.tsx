@@ -4,6 +4,7 @@ import { getFriends } from "../services/userAPI";
 
 export default function AddMemberModal({ group, onClose, setGroups, setSelectedGroup }: any) {
   const [friends, setFriends] = useState([]);
+  const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
     fetchFriends();
@@ -19,29 +20,35 @@ export default function AddMemberModal({ group, onClose, setGroups, setSelectedG
   };
 
   // check user in group
-  const isMember = (userId: string) => {
-    return group.members?.some((m: any) => m._id === userId);
-  };
+ const isMember = (userId: string) => {
+  return members.some((m: any) => m._id === userId);
+};
 
   // add member
-  const addMember = async (userId: string) => {
-    try {
-      const res = await conversationApi.addMember(group._id, userId);
+ const addMember = async (userId: string) => {
+  try {
+    const res = await conversationApi.addMember(group._id, userId);
 
-      const updatedGroup = res.data.group;
+    const updatedGroup = res.data.group;
 
-      setSelectedGroup(updatedGroup);
+    setMembers(updatedGroup.members);
 
-      setGroups((prev: any) =>
-        prev.map((g: any) =>
-          g._id === updatedGroup._id ? updatedGroup : g
-        )
-      );
+    setSelectedGroup(updatedGroup);
 
-    } catch (err) {
-      console.error("Failed to add member", err);
-    }
-  };
+    setGroups((prev: any) =>
+      prev.map((g: any) =>
+        g._id === updatedGroup._id ? updatedGroup : g
+      )
+    );
+
+  } catch (err) {
+    console.error("Failed to add member", err);
+  }
+};
+
+  useEffect(() => {
+  setMembers(group?.members || []);
+}, [group]);
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center">

@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { FaUsers } from "react-icons/fa";
 import { socket } from "../contex/socket";
 import { conversationApi } from "../services/conversationAPI";
 
-export default function GroupChat({ group, onInvite }: any) {
+export default function GroupChat({ group, onInvite, onGroupUpdate }: any) {
     const [messages, setMessages] = useState<any[]>([]);
     const [text, setText] = useState("");
-
+    const [members, setMembers] = useState<any[]>([]);
+    const [showMembers, setShowMembers] = useState(false);
+    const [loadingId, setLoadingId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const loggedInUser = JSON.parse(
@@ -21,6 +24,28 @@ export default function GroupChat({ group, onInvite }: any) {
         return senderId === loggedInUser._id;
     };
 
+    const removeMember = async (memberId: string) => {
+        try {
+            setLoadingId(memberId);
+
+            const res = await conversationApi.removeMember(group._id, memberId);
+            const updatedGroup = res.data.group;
+
+            setMembers((prev) => prev.filter((m) => m._id !== memberId));
+            onGroupUpdate(updatedGroup);
+
+        } catch (err) {
+            console.error("Failed to remove member", err);
+        } finally {
+            setLoadingId(null);
+        }
+    };
+
+    useEffect(() => {
+        if (group?.members) {
+            setMembers(group.members);
+        }
+    }, [group]);
     useEffect(() => {
         if (!group) return;
         setMessages([]);
@@ -106,12 +131,22 @@ export default function GroupChat({ group, onInvite }: any) {
                     </div>
                 </div>
 
-                <button
-                    onClick={onInvite}
-                    className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-full text-sm"
-                >
-                    + Add
-                </button>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowMembers(true)}
+                        className="bg-gray-200 hover:bg-gray-300 p-2 rounded-full"
+                    >
+                        <FaUsers />
+                    </button>
+
+                    <button
+                        onClick={onInvite}
+                        className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-full text-sm"
+                    >
+                        + Add
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
@@ -176,6 +211,44 @@ export default function GroupChat({ group, onInvite }: any) {
                     Send
                 </button>
             </div>
+            {showMembers && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white w-[350px] max-h-[80vh] rounded-lg p-4 overflow-y-auto">
+
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="font-semibold text-lg">Group Members</h2>
+                            <button onClick={() => setShowMembers(false)}>✖</button>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            {members.map((member: any) => (
+                                <div
+                                    key={member._id}
+                                    className="flex items-center justify-between"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <img
+                                            src={member.profilePic || "https://i.pravatar.cc/40"}
+                                            className="w-8 h-8 rounded-full"
+                                        />
+                                        <span>{member.username}</span>
+                                    </div>
+
+                                    {member._id !== loggedInUser._id && (
+                                        <button
+                                            disabled={loadingId === member._id}
+                                            onClick={() => removeMember(member._id)}
+                                            className="text-red-500 text-sm"
+                                        >
+                                            {loadingId === member._id ? "Removing..." : "Remove"}
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
